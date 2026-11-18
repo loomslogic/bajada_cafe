@@ -38,7 +38,7 @@ $('#doLogin').onclick=function(){
   var b=this;b.disabled=true;$('#loginErr').textContent='';
   sb.auth.signInWithPassword({email:$('#aEmail').value.trim(),password:$('#aPass').value}).then(function(r){
     b.disabled=false;
-    if(r.error){$('#loginErr').textContent='Wrong email or password.';return}
+    if(r.error){var m=r.error.message||'';$('#loginErr').textContent=/confirm/i.test(m)?'This email is not confirmed yet. In Supabase open Authentication → Users, delete this user and add it again with “Auto Confirm User” ticked.':(/invalid login/i.test(m)?'Wrong email or password, or this user does not exist yet in Supabase (Authentication → Users).':'Could not sign in: '+m);return}
     $('#aPass').value='';show(r.data.session);
   });
 };
