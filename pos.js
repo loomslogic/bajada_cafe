@@ -3,7 +3,7 @@ const peso=n=>'₱'+Number(n).toLocaleString('en-PH',{maximumFractionDigits:2});
 const store={get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 let cart=[],cat='All',type='Dine-in',pay='Cash',query='';
 const today=()=>new Date().toISOString().slice(0,10);
-const sales=()=>store.get('drip_sales',[]);
+const sales=()=>store.get('bajada_sales',[]);
 const nextNo=()=>sales().filter(s=>s.date===today()).length+1;
 const total=()=>cart.reduce((a,l)=>a+l.p*l.q,0);
 const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -36,8 +36,8 @@ function renderCart(){
 function charge(){
   const t=total(),c=pay==='Cash'?(parseFloat($('#cash').value)||0):t;
   const d=new Date(),sale={no:nextNo(),date:today(),time:d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}),type,pay,items:cart.map(({n,size,p,q})=>({n,size,p,q})),total:t,paid:c,change:Math.max(0,c-t)};
-  const all=sales();all.push(sale);store.set('drip_sales',all);
-  $('#receipt').innerHTML=`<h3>Drip Coffee</h3><p>Diversion Road, Dumaguete City</p><p>Order #${sale.no} · ${sale.date} ${sale.time}</p><p>${sale.type} · ${sale.pay}</p><hr>`+
+  const all=sales();all.push(sale);store.set('bajada_sales',all);
+  $('#receipt').innerHTML=`<h3>Bajada Cafe</h3><p>Jose Romero Road, Valencia</p><p>Order #${sale.no} · ${sale.date} ${sale.time}</p><p>${sale.type} · ${sale.pay}</p><hr>`+
    sale.items.map(i=>`<div class="r"><span>${i.q} × ${esc(i.n)} ${i.size||''}</span><span>${peso(i.p*i.q)}</span></div>`).join('')+
    `<hr><div class="r"><b>Total</b><b>${peso(sale.total)}</b></div>`+(sale.pay==='Cash'?`<div class="r"><span>Cash</span><span>${peso(sale.paid)}</span></div><div class="r"><span>Change</span><span>${peso(sale.change)}</span></div>`:'')+`<hr><p>Thank you!</p>`;
   $('#dReceipt').showModal();cart=[];$('#cash').value='';renderCart();
@@ -55,7 +55,7 @@ function csv(){
   const r=[['Order','Date','Time','Type','Payment','Item','Size','Qty','Price','Line total']];
   sales().forEach(s=>s.items.forEach(i=>r.push([s.no,s.date,s.time,s.type,s.pay,i.n,i.size||'',i.q,i.p,i.p*i.q])));
   const b=new Blob([r.map(x=>x.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n')],{type:'text/csv'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='drip-coffee-sales.csv';a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='bajada-cafe-sales.csv';a.click();
 }
 document.addEventListener('click',e=>{
   const t=e.target.closest('button');if(!t)return;
@@ -75,5 +75,5 @@ $('#btnCharge').onclick=charge;
 $('#btnPrint').onclick=()=>window.print();
 $('#btnReport').onclick=report;
 $('#btnCsv').onclick=csv;
-$('#btnWipe').onclick=()=>{if(confirm('Delete ALL saved sales on this device? This cannot be undone.')){store.set('drip_sales',[]);$('#dReport').close();renderCart()}};
+$('#btnWipe').onclick=()=>{if(confirm('Delete ALL saved sales on this device? This cannot be undone.')){store.set('bajada_sales',[]);$('#dReport').close();renderCart()}};
 renderChips();renderItems();renderCart();
