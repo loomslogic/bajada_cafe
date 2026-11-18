@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Order online · Bajada Cafe</title>
+<link rel="icon" type="image/png" href="bajada-favicon.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="order.css">
+</head>
+<body class="orderpage">
+<div class="top slim"><div class="wrap">
+<header><a class="brand" href="index.html"><img src="bajada-logo.png" alt="Bajada Cafe logo"><span class="logo">Bajada Cafe</span></a><nav><a href="index.html">Home</a><a href="index.html#contact">Contact</a></nav></header>
+<div class="ohero"><div class="eyebrow">Online order &amp; pickup</div><h1>Order ahead</h1></div>
+</div></div>
+
+<div class="wrap omain">
+<div id="notice"></div>
+<ol class="steps" id="steps"><li data-s="1" class="on">Menu</li><li data-s="2">Review</li><li data-s="3">Details</li><li data-s="4">Payment</li><li data-s="5">Done</li></ol>
+
+<div class="ostep" id="step1">
+  <div class="chips" id="chips"></div>
+  <div id="menuRoot"></div>
+</div>
+
+<div class="ostep" id="step2" hidden>
+  <h2>Review your order</h2>
+  <div class="card" id="reviewList"></div>
+  <button class="obtn big" id="toDetails">Continue to details</button>
+  <button class="olink" id="backMenu">← Edit order</button>
+</div>
+
+<div class="ostep" id="step3" hidden>
+  <h2>Your details</h2>
+  <div class="notice ok">Your order will be ready at Bajada Cafe. We’ll call your name when it’s ready!</div>
+  <form id="detailsForm" class="card oform" novalidate>
+    <label>Full name *<input id="fName" maxlength="80" placeholder="e.g. Maria Santos" autocomplete="name"></label>
+    <label>Mobile number *<input id="fMobile" inputmode="numeric" maxlength="11" placeholder="09XXXXXXXXX" autocomplete="tel"></label>
+    <label>Special instructions<textarea id="fNote" maxlength="300" rows="2" placeholder="e.g. Less ice, extra sugar, no straw"></textarea></label>
+    <div><div class="lbl">Order type</div>
+      <div class="seg" id="typeSeg"><button type="button" data-t="pickup" class="on">Pickup</button><button type="button" data-t="dine_in">Dine in</button></div>
+      <div class="hint" id="dineNote"></div></div>
+    <label id="seatsWrap" hidden>How many seats do you need? *<input id="fSeats" type="number" min="1" max="20" value="2"></label>
+    <label>Arrival time<select id="fArrive"><option>Within 15 minutes</option><option selected>Within 30 minutes</option><option>Within 1 hour</option><option>Later today</option></select></label>
+    <label class="chk"><input type="checkbox" id="fConsent"><span>I agree that Bajada Cafe may use my name and mobile number to process this order.</span></label>
+    <div class="err" id="formErr"></div>
+    <button type="submit" class="obtn big" id="toPay">Proceed to payment →</button>
+  </form>
+  <button class="olink" id="backReview">← Back to review</button>
+</div>
+
+<div class="ostep" id="step4" hidden>
+  <h2>Pay via GCash</h2>
+  <div class="gcash"><div class="gs">Send payment to</div><div class="gn" id="gNum"></div><div class="gs" id="gName"></div><div class="gs gap">Amount</div><div class="ga" id="gAmt"></div></div>
+  <div class="card refcard"><div class="lbl">Your reference number</div><div class="ref" id="refNo"></div><div class="hint">Write this in the GCash note or message field.</div></div>
+  <div class="card hint2">Open GCash → Send Money → enter the number above → exact amount → type your reference number in the note → Send.</div>
+  <div class="card"><div class="lbl">GCash screenshot * <span class="hint">Attach your GCash receipt to continue</span></div><input type="file" id="proof" accept="image/*"><img id="proofPrev" alt="" hidden></div>
+  <div class="err" id="payErr"></div>
+  <button class="obtn big" id="paid" disabled>✓ I’ve sent the payment</button>
+</div>
+
+<div class="ostep" id="step5" hidden>
+  <h2>Order received</h2>
+  <div class="card done"><div class="lbl">Reference number</div><div class="ref" id="doneRef"></div><div class="pill" id="doneStatus"></div><p id="doneMsg"></p></div>
+  <button class="obtn big" id="newOrder">Start a new order</button>
+</div>
+</div>
+
+<div class="cartbar" id="cartbar" hidden><div class="cartin"><div><b id="cbCount"></b><span id="cbTotal"></span></div><button class="obtn" id="cbGo">Review order</button></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.109.0/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="menu.js"></script>
+<script src="order.js"></script>
+</body>
+</html>
