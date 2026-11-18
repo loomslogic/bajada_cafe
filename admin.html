@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Staff · Bajada Cafe</title>
+<link rel="icon" type="image/png" href="bajada-favicon.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="order.css">
+</head>
+<body class="orderpage">
+<div class="top slim"><div class="wrap">
+<header><a class="brand" href="index.html"><img src="bajada-logo.png" alt="Bajada Cafe logo"><span class="logo">Bajada Cafe</span></a><nav id="signedIn" hidden><button class="olink" id="signOut">Sign out</button></nav></header>
+<div class="ohero"><div class="eyebrow">Staff area</div><h1>Admin</h1></div>
+</div></div>
+
+<div class="wrap omain">
+<div id="notice"></div>
+
+<div id="login" class="card oform" hidden>
+  <div class="lbl">Staff login</div>
+  <label>Email<input id="aEmail" type="email" autocomplete="username"></label>
+  <label>Password<input id="aPass" type="password" autocomplete="current-password"></label>
+  <div class="err" id="loginErr"></div>
+  <button class="obtn big" id="doLogin">Unlock</button>
+</div>
+
+<div id="panel" hidden>
+  <div class="chips" id="tabs"><button class="chip on" data-t="orders">Orders <span id="badge"></span></button><button class="chip" data-t="store">Store</button><button class="chip" data-t="menu">Menu items</button><button class="chip" data-t="account">Account</button></div>
+
+  <div class="atab" id="t-orders">
+    <div class="seg" id="ofilter"><button class="on" data-f="active">Active</button><button data-f="all">All</button></div>
+    <div id="orders"></div>
+  </div>
+
+  <div class="atab" id="t-store" hidden>
+    <div class="card oform"><h3>Store status</h3><div class="hint">Turning the store off blocks all new orders immediately.</div>
+      <div class="seg" id="openSeg"><button data-v="1">Open</button><button data-v="0">Closed</button></div>
+      <label>Message shown to customers<input id="sMsg" maxlength="140" placeholder="e.g. We’re closed due to flood"></label>
+      <div class="lbl">Reopens at (optional)</div><div class="quick" data-for="store"></div><div class="hint" id="sWhen"></div>
+    </div>
+    <div class="card oform"><h3>Dine in availability</h3><div class="hint">Pickup stays available either way. This only controls Dine in.</div>
+      <div class="seg" id="dineSeg"><button data-v="1">Available</button><button data-v="0">Not available</button></div>
+      <label>Reason shown to customers<input id="dReason" maxlength="140" placeholder="e.g. Peak hours"></label>
+      <div class="lbl">Available again at (optional)</div><div class="quick" data-for="dine"></div><div class="hint" id="dWhen"></div>
+    </div>
+    <div class="card oform"><h3>GCash details</h3>
+      <label>GCash number<input id="gNumIn" maxlength="20"></label>
+      <label>Account name<input id="gNameIn" maxlength="60"></label>
+    </div>
+    <button class="obtn big" id="saveStore">Save changes</button><button class="olink" id="discardStore">Discard &amp; reload</button><div class="hint" id="storeMsg"></div>
+  </div>
+
+  <div class="atab" id="t-menu" hidden>
+    <div class="card oform"><h3>Menu items</h3><div class="hint">Sold out keeps the item visible but greyed out and unorderable. Remove hides it completely. Both are reversible.</div>
+      <label>Filter by category<select id="mCat"></select></label></div>
+    <div id="mList"></div>
+    <button class="obtn big" id="saveMenu">Save changes</button><button class="olink" id="discardMenu">Discard &amp; reload</button><div class="hint" id="menuMsg"></div>
+  </div>
+
+  <div class="atab" id="t-account" hidden>
+    <div class="card oform"><h3>Change admin password</h3><div class="hint">Minimum 8 characters. It works on every device.</div>
+      <label>New password<input id="pNew" type="password" autocomplete="new-password" placeholder="At least 8 characters"></label>
+      <label>Confirm new password<input id="pNew2" type="password" autocomplete="new-password" placeholder="Type it again"></label>
+      <div class="err" id="pErr"></div><button class="obtn big" id="updPass">Update password</button></div>
+  </div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.109.0/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="menu.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
