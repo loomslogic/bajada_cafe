@@ -1,6 +1,7 @@
 (function(){
 'use strict';
 window.__adminLoaded=true;
+document.title='Staff · Bajada Cafe (v3)';
 var $=function(s){return document.querySelector(s)};
 var $$=function(s){return [].slice.call(document.querySelectorAll(s))};
 var peso=function(n){return '₱'+Number(n).toLocaleString('en-PH')};
