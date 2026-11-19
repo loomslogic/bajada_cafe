@@ -7,8 +7,9 @@ var peso=function(n){return '₱'+Number(n).toLocaleString('en-PH')};
 var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
 var STORE_KEY='bajada_order';
 
+function cleanUrl(u){u=String(u||'').trim();try{return new URL(u).origin}catch(e){return u.replace(/\/+$/,'')}}
 var sb=null,cfgOk=!!(window.SB&&window.SB.url&&window.SB.url.indexOf('YOUR-')<0&&window.SB.key&&window.supabase);
-if(cfgOk){try{sb=window.supabase.createClient(window.SB.url,window.SB.key)}catch(e){cfgOk=false;sb=null;setTimeout(function(){notice('Ordering setup problem: '+esc(e.message)+'. Check config.js.','warn')},0)}}
+if(cfgOk){try{sb=window.supabase.createClient(cleanUrl(window.SB.url),String(window.SB.key).trim())}catch(e){cfgOk=false;sb=null;setTimeout(function(){notice('Ordering setup problem: '+esc(e.message)+'. Check config.js.','warn')},0)}}
 
 var M=(typeof MENU!=='undefined'&&MENU)||[];
 if(window.ORDER_ONLY_PHOTOS!==false){M=M.map(function(m){return {c:m.c,i:m.i.filter(function(i){return i.img})}}).filter(function(m){return m.i.length})}
