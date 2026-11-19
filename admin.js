@@ -1,18 +1,19 @@
 (function(){
 'use strict';
 window.__adminLoaded=true;
-document.title='Staff · Bajada Cafe (v3)';
+document.title='Staff · Bajada Cafe (v4)';
 var $=function(s){return document.querySelector(s)};
 var $$=function(s){return [].slice.call(document.querySelectorAll(s))};
 var peso=function(n){return '₱'+Number(n).toLocaleString('en-PH')};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
 function notice(t,c){$('#notice').innerHTML=t?'<div class="notice '+(c||'ok')+'">'+t+'</div>':''}
 window.addEventListener('error',function(e){notice('Script error: '+esc(e.message||'unknown')+'. Please send a screenshot of this to your developer.','warn')});
+function cleanUrl(u){u=String(u||'').trim();try{return new URL(u).origin}catch(e){return u.replace(/\/+$/,'')}}
 var hasCfg=!!(window.SB&&window.SB.url&&window.SB.url.indexOf('YOUR-')<0&&window.SB.key&&window.SB.key.indexOf('YOUR-')<0);
 if(!hasCfg){notice('Add your Supabase Project URL and key to <b>config.js</b> (and make sure config.js is uploaded next to admin.html).','warn');return}
 if(!window.supabase){notice('The Supabase library did not load. Check your internet connection and reload.','warn');return}
 var sb;
-try{sb=window.supabase.createClient(window.SB.url,window.SB.key)}
+try{sb=window.supabase.createClient(cleanUrl(window.SB.url),String(window.SB.key).trim())}
 catch(e){notice('Problem with the details in <b>config.js</b>: '+esc(e.message)+'. The Project URL must look like https://xxxx.supabase.co and the key must be the Publishable key.','warn');return}
 
 var M=(typeof MENU!=='undefined'&&MENU)||[];
