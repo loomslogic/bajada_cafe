@@ -6,7 +6,6 @@
 <title>Order online · Bajada Cafe</title>
 <link rel="icon" type="image/png" href="bajada-favicon.png">
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="order.css">
 </head>
 <body class="orderpage">
 <div class="top slim"><div class="wrap">
@@ -42,6 +41,7 @@
       <div class="hint" id="dineNote"></div></div>
     <label id="seatsWrap" hidden>How many seats do you need? *<input id="fSeats" type="number" min="1" max="20" value="2"></label>
     <label>Arrival time<select id="fArrive"><option>Within 15 minutes</option><option selected>Within 30 minutes</option><option>Within 1 hour</option><option>Later today</option></select></label>
+    <div><div class="lbl">Payment method</div><div class="seg flexwrap" id="paym"></div><div class="hint" id="payNote"></div></div>
     <label class="chk"><input type="checkbox" id="fConsent"><span>I agree that Bajada Cafe may use my name and mobile number to process this order.</span></label>
     <div class="err" id="formErr"></div>
     <button type="submit" class="obtn big" id="toPay">Proceed to payment →</button>
@@ -50,11 +50,11 @@
 </div>
 
 <div class="ostep" id="step4" hidden>
-  <h2>Pay via GCash</h2>
-  <div class="gcash"><div class="gs">Send payment to</div><div class="gn" id="gNum"></div><div class="gs" id="gName"></div><div class="gs gap">Amount</div><div class="ga" id="gAmt"></div></div>
+  <h2 id="payTitle">Pay via GCash</h2>
+  <div class="gcash"><div class="gs">Send payment to</div><img id="payQr" class="qr" alt="Payment QR code" hidden><div class="gn" id="gNum"></div><div class="gs" id="gName"></div><div class="gs gap">Amount</div><div class="ga" id="gAmt"></div></div>
   <div class="card refcard"><div class="lbl">Your reference number</div><div class="ref" id="refNo"></div><div class="hint">Write this in the GCash note or message field.</div></div>
-  <div class="card hint2">Open GCash → Send Money → enter the number above → exact amount → type your reference number in the note → Send.</div>
-  <div class="card"><div class="lbl">GCash screenshot * <span class="hint">Attach your GCash receipt to continue</span></div><input type="file" id="proof" accept="image/*"><img id="proofPrev" alt="" hidden></div>
+  <div class="card hint2"><span id="payHow">Open GCash → Send Money → enter the number above → exact amount → type your reference number in the note → Send.</span></div>
+  <div class="card"><div class="lbl"><span id="proofLbl">GCash</span> screenshot * <span class="hint">Attach your payment receipt to continue</span></div><input type="file" id="proof" accept="image/*"><img id="proofPrev" alt="" hidden></div>
   <div class="err" id="payErr"></div>
   <button class="obtn big" id="paid" disabled>✓ I’ve sent the payment</button>
 </div>
@@ -71,6 +71,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.109.0/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <script src="menu.js"></script>
+<script src="shop.js"></script>
 <script src="order.js"></script>
 <script>if(!window.__orderLoaded)document.getElementById("notice").innerHTML='<div class="notice warn">order.js did not load. Upload order.js to the same folder as order.html, then reload.</div>'</script>
 </body>
