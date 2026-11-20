@@ -1,6 +1,8 @@
 (function(){
 'use strict';
 window.__adminLoaded=true;
+if(!window.BC){var __n=document.getElementById('notice');if(__n)__n.innerHTML='<div class="notice warn">shop.js did not load. Upload shop.js to the same folder as this page, then reload.</div>';return}
+
 document.title='Staff · Bajada Cafe (v5)';
 var BC=window.BC,$=function(s){return document.querySelector(s)},$$=function(s){return [].slice.call(document.querySelectorAll(s))};
 var peso=BC.peso,esc=BC.esc;
