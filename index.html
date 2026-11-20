@@ -12,7 +12,7 @@
 </head>
 <body>
 <div class="top"><div class="wrap">
-<header><a class="brand" href="#"><img src="bajada-logo.png" alt="Bajada Cafe logo"><span class="logo">Bajada Cafe</span></a><nav><a href="#menu">Menu</a><a href="#contact">Contact</a></nav></header>
+<header><a class="brand" href="#"><img src="bajada-logo.png" alt="Bajada Cafe logo"><span class="logo">Bajada Cafe</span></a><nav><a href="#menu">Menu</a><a href="order.html">Order</a><a href="#contact">Contact</a></nav></header>
 <div class="hero">
 <div class="hero-text">
 <div class="eyebrow">Valencia, Negros Oriental</div>
@@ -27,6 +27,7 @@
 <h2>Our menu</h2>
 <p class="sub">Prices in Philippine pesos.</p>
 <p class="sample">Sample menu for reference. Items and prices to be confirmed.</p>
+<div id="menuNotice"></div>
 <div class="chips" id="chips"></div>
 <div id="menuRoot"></div>
 </section>
@@ -43,8 +44,12 @@
 <p class="note">Phone, email and hours above are placeholders. Replace them with the shop’s real details.</p>
 </section>
 </div>
+<div class="cartbar" id="cartbar" hidden><div class="cartin"><div><b id="cbCount"></b><span id="cbTotal"></span></div><a class="obtn" href="order.html?step=review">Review order →</a></div></div>
 <footer><div class="wrap">© 2026 Bajada Cafe</div></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.109.0/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
 <script src="menu.js"></script>
+<script src="shop.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
