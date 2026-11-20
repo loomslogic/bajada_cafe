@@ -1,41 +1,32 @@
 (function(){
 'use strict';
 window.__adminLoaded=true;
-document.title='Staff · Bajada Cafe (v4)';
-var $=function(s){return document.querySelector(s)};
-var $$=function(s){return [].slice.call(document.querySelectorAll(s))};
-var peso=function(n){return '₱'+Number(n).toLocaleString('en-PH')};
-var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+document.title='Staff · Bajada Cafe (v5)';
+var BC=window.BC,$=function(s){return document.querySelector(s)},$$=function(s){return [].slice.call(document.querySelectorAll(s))};
+var peso=BC.peso,esc=BC.esc;
 function notice(t,c){$('#notice').innerHTML=t?'<div class="notice '+(c||'ok')+'">'+t+'</div>':''}
-window.addEventListener('error',function(e){notice('Script error: '+esc(e.message||'unknown')+'. Please send a screenshot of this to your developer.','warn')});
-function cleanUrl(u){u=String(u||'').trim();try{return new URL(u).origin}catch(e){return u.replace(/\/+$/,'')}}
-var hasCfg=!!(window.SB&&window.SB.url&&window.SB.url.indexOf('YOUR-')<0&&window.SB.key&&window.SB.key.indexOf('YOUR-')<0);
-if(!hasCfg){notice('Add your Supabase Project URL and key to <b>config.js</b> (and make sure config.js is uploaded next to admin.html).','warn');return}
-if(!window.supabase){notice('The Supabase library did not load. Check your internet connection and reload.','warn');return}
-var sb;
-try{sb=window.supabase.createClient(cleanUrl(window.SB.url),String(window.SB.key).trim())}
-catch(e){notice('Problem with the details in <b>config.js</b>: '+esc(e.message)+'. The Project URL must look like https://xxxx.supabase.co and the key must be the Publishable key.','warn');return}
-
-var M=(typeof MENU!=='undefined'&&MENU)||[];
-var st=null,ms={},ofilter='active',orders=[],timer=null;
+window.addEventListener('error',function(e){notice('Script error: '+esc(e.message||'unknown'),'warn')});
+if(!BC.hasCfg){notice('Add your Supabase Project URL and key to <b>config.js</b> (and make sure config.js is uploaded next to admin.html).','warn');return}
+if(!BC.libOk){notice('The Supabase library did not load. Check your internet connection and reload.','warn');return}
+if(!BC.sb){notice('Problem with the details in <b>config.js</b>: '+esc(BC.err)+'.','warn');return}
+var sb=BC.sb;
+var st=null,rows=[],ms={},orig={},orders=[],ofilter='active',timer=null;
+var editKey=null,editImage='',newBlob=null,qrBusy=false;
+function bool(v,d){return v===undefined||v===null?d:!!v}
 
 /* ---------- login ---------- */
 function show(session){
   clearInterval(timer);
   if(!session){$('#login').hidden=false;$('#panel').hidden=true;$('#signedIn').hidden=true;return}
   sb.rpc('am_i_staff').then(function(r){
-    if(r.error||r.data!==true){
-      notice('This account is not a staff account.','warn');
-      sb.auth.signOut();return;
-    }
-    notice('');
-    $('#login').hidden=true;$('#panel').hidden=false;$('#signedIn').hidden=false;
+    if(r.error||r.data!==true){notice('This account is not a staff account.','warn');sb.auth.signOut();return}
+    notice('');$('#login').hidden=true;$('#panel').hidden=false;$('#signedIn').hidden=false;
     loadOrders();loadStore();loadMenu();
     timer=setInterval(function(){if(!document.hidden&&$('#t-orders').hidden===false)loadOrders()},15000);
   });
 }
 sb.auth.getSession().then(function(r){show(r.data.session)});
-sb.auth.onAuthStateChange(function(ev,s){if(ev==='SIGNED_OUT')show(null)});
+sb.auth.onAuthStateChange(function(ev){if(ev==='SIGNED_OUT')show(null)});
 $('#doLogin').onclick=function(){
   var b=this;b.disabled=true;$('#loginErr').textContent='';
   sb.auth.signInWithPassword({email:$('#aEmail').value.trim(),password:$('#aPass').value}).then(function(r){
@@ -56,7 +47,8 @@ $('#tabs').addEventListener('click',function(e){
 });
 
 /* ---------- orders ---------- */
-var LABEL={awaiting_payment:'Waiting for payment',awaiting_verification:'Verify payment',paid:'Paid',preparing:'Preparing',ready:'Ready',done:'Done',cancelled:'Cancelled'};
+var LABEL={awaiting_payment:'Waiting for payment',awaiting_verification:'Verify payment',pay_at_counter:'Pay at counter',paid:'Paid',preparing:'Preparing',ready:'Ready',done:'Done',cancelled:'Cancelled'};
+var METHOD={gcash:'GCash',maya:'Maya',cash:'Pay at counter'};
 function loadOrders(){
   sb.from('orders').select('*').order('id',{ascending:false}).limit(100).then(function(r){
     if(r.error){$('#orders').innerHTML='<p class="hint">Could not load orders.</p>';return}
@@ -65,7 +57,7 @@ function loadOrders(){
 }
 function renderOrders(){
   var list=orders.filter(function(o){return ofilter==='all'||(o.status!=='done'&&o.status!=='cancelled')});
-  var pending=orders.filter(function(o){return o.status==='awaiting_verification'}).length;
+  var pending=orders.filter(function(o){return o.status==='awaiting_verification'||o.status==='pay_at_counter'}).length;
   $('#badge').textContent=pending||'';
   if(!list.length){$('#orders').innerHTML='<p class="hint">No orders yet.</p>';return}
   $('#orders').innerHTML=list.map(function(o){
@@ -73,13 +65,13 @@ function renderOrders(){
     var items=(o.items||[]).map(function(i){return '<li>'+i.qty+' × '+esc(i.name)+(i.size?' ('+esc(i.size)+')':'')+' — '+peso(i.price*i.qty)+'</li>'}).join('');
     var btns=[];
     if(o.proof_path)btns.push('<button data-a="proof" data-p="'+esc(o.proof_path)+'">View screenshot</button>');
-    if(o.status==='awaiting_verification'||o.status==='awaiting_payment')btns.push('<button class="main" data-a="s" data-id="'+o.id+'" data-s="paid">Mark paid</button>');
+    if(o.status==='awaiting_verification'||o.status==='awaiting_payment'||o.status==='pay_at_counter')btns.push('<button class="main" data-a="s" data-id="'+o.id+'" data-s="paid">Mark paid</button>');
     if(o.status==='paid')btns.push('<button class="main" data-a="s" data-id="'+o.id+'" data-s="preparing">Start preparing</button>');
     if(o.status==='preparing')btns.push('<button class="main" data-a="s" data-id="'+o.id+'" data-s="ready">Mark ready</button>');
     if(o.status==='ready')btns.push('<button class="main" data-a="s" data-id="'+o.id+'" data-s="done">Mark done</button>');
     if(o.status!=='done'&&o.status!=='cancelled')btns.push('<button data-a="s" data-id="'+o.id+'" data-s="cancelled">Cancel</button>');
     return '<div class="card ocard"><div class="ohead"><b>#'+esc(o.ref)+' · '+esc(o.customer_name)+'</b><span class="pill">'+esc(LABEL[o.status]||o.status)+'</span></div>'+
-      '<div class="hint">'+t+' · <a href="tel:'+esc(o.mobile)+'">'+esc(o.mobile)+'</a> · '+(o.order_type==='dine_in'?'Dine in ('+(o.seats||'?')+' seats)':'Pickup')+(o.arrival?' · '+esc(o.arrival):'')+'</div>'+
+      '<div class="hint">'+t+' · <a href="tel:'+esc(o.mobile)+'">'+esc(o.mobile)+'</a> · '+(o.order_type==='dine_in'?'Dine in ('+(o.seats||'?')+' seats)':'Pickup')+(o.arrival?' · '+esc(o.arrival):'')+' · '+esc(METHOD[o.payment_method]||'GCash')+'</div>'+
       '<ul>'+items+'</ul>'+(o.instructions?'<div class="hint">Note: '+esc(o.instructions)+'</div>':'')+
       '<div class="rtotal"><span>Total</span><span>'+peso(o.total)+'</span></div><div class="btnrow">'+btns.join('')+'</div></div>';
   }).join('');
@@ -96,7 +88,14 @@ $('#orders').addEventListener('click',function(e){
   }
 });
 
-/* ---------- store settings ---------- */
+/* ---------- store + payment settings ---------- */
+function uploadMedia(blob,folder){
+  var path=folder+'/'+BC.uid()+'.jpg';
+  return sb.storage.from('shop-media').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){
+    if(r.error)throw r.error;
+    return sb.storage.from('shop-media').getPublicUrl(path).data.publicUrl;
+  });
+}
 function loadStore(){
   sb.from('settings').select('*').eq('id',1).maybeSingle().then(function(r){
     if(r.error||!r.data){$('#storeMsg').textContent='Could not load settings.';return}
@@ -104,11 +103,15 @@ function loadStore(){
   });
 }
 function when(iso){return iso?'Back '+new Date(iso).toLocaleString('en-PH',{weekday:'short',hour:'numeric',minute:'2-digit'}):'No time set'}
+function seg(sel,val){$$(sel+' button').forEach(function(b){b.classList.toggle('on',(b.dataset.v==='1')===!!val)})}
+function paintQr(id,btn,url){$(id).hidden=!url;if(url)$(id).src=url;$(btn).hidden=!url}
 function paintStore(){
-  $$('#openSeg button').forEach(function(b){b.classList.toggle('on',(b.dataset.v==='1')===!!st.store_open)});
-  $$('#dineSeg button').forEach(function(b){b.classList.toggle('on',(b.dataset.v==='1')===!!st.dine_in_available)});
+  seg('#openSeg',st.store_open);seg('#dineSeg',st.dine_in_available);
+  seg('#pgSeg',bool(st.pay_gcash,true));seg('#pmSeg',bool(st.pay_maya,false));seg('#pcSeg',bool(st.pay_cash,true));
   $('#sMsg').value=st.store_message||'';$('#dReason').value=st.dine_in_reason||'';
   $('#gNumIn').value=st.gcash_number||'';$('#gNameIn').value=st.gcash_name||'';
+  $('#mNumIn').value=st.maya_number||'';$('#mNameIn').value=st.maya_name||'';
+  paintQr('#gQrImg','#gQrClear',st.gcash_qr);paintQr('#mQrImg','#mQrClear',st.maya_qr);
   $('#sWhen').textContent=when(st.store_reopen_at);$('#dWhen').textContent=when(st.dine_in_reopen_at);
 }
 $$('.quick').forEach(function(q){
@@ -116,71 +119,137 @@ $$('.quick').forEach(function(q){
   q.addEventListener('click',function(e){
     var b=e.target.closest('button');if(!b||!st)return;
     var d=new Date(),t=b.textContent,v=null;
-    if(t==='+1 hr'){d.setHours(d.getHours()+1);v=d}
-    else if(t==='+2 hrs'){d.setHours(d.getHours()+2);v=d}
-    else if(t==='+4 hrs'){d.setHours(d.getHours()+4);v=d}
-    else if(t==='Tomorrow 8am'){d.setDate(d.getDate()+1);d.setHours(8,0,0,0);v=d}
+    if(t==='+1 hr'){d.setHours(d.getHours()+1);v=d}else if(t==='+2 hrs'){d.setHours(d.getHours()+2);v=d}else if(t==='+4 hrs'){d.setHours(d.getHours()+4);v=d}else if(t==='Tomorrow 8am'){d.setDate(d.getDate()+1);d.setHours(8,0,0,0);v=d}
     var iso=v?v.toISOString():null;
     if(q.dataset.for==='store')st.store_reopen_at=iso;else st.dine_in_reopen_at=iso;
     paintStore();
   });
 });
-$('#openSeg').addEventListener('click',function(e){var b=e.target.closest('button');if(!b||!st)return;st.store_open=b.dataset.v==='1';paintStore()});
-$('#dineSeg').addEventListener('click',function(e){var b=e.target.closest('button');if(!b||!st)return;st.dine_in_available=b.dataset.v==='1';paintStore()});
+function bindSeg(sel,field){$(sel).addEventListener('click',function(e){var b=e.target.closest('button');if(!b||!st)return;st[field]=b.dataset.v==='1';paintStore()})}
+bindSeg('#openSeg','store_open');bindSeg('#dineSeg','dine_in_available');bindSeg('#pgSeg','pay_gcash');bindSeg('#pmSeg','pay_maya');bindSeg('#pcSeg','pay_cash');
+function bindQr(fileSel,clearSel,field){
+  $(fileSel).addEventListener('change',function(){
+    var f=this.files&&this.files[0];if(!f||!st)return;
+    $('#storeMsg').textContent='Uploading QR…';
+    BC.compress(f,800,function(b){
+      if(!b){$('#storeMsg').textContent='That image could not be read.';return}
+      uploadMedia(b,'qr').then(function(url){st[field]=url;paintStore();$('#storeMsg').textContent='QR uploaded. Tap Save changes to keep it.'})
+      .catch(function(){$('#storeMsg').textContent='Upload failed. Run supabase-update-v2.sql first, then try again.'});
+    });
+  });
+  $(clearSel).onclick=function(){if(st){st[field]='';paintStore()}};
+}
+bindQr('#gQrFile','#gQrClear','gcash_qr');bindQr('#mQrFile','#mQrClear','maya_qr');
 $('#saveStore').onclick=function(){
   if(!st)return;var b=this;b.disabled=true;
-  var row={store_open:st.store_open,store_message:$('#sMsg').value.trim(),store_reopen_at:st.store_reopen_at||null,dine_in_available:st.dine_in_available,dine_in_reason:$('#dReason').value.trim(),dine_in_reopen_at:st.dine_in_reopen_at||null,gcash_number:$('#gNumIn').value.trim(),gcash_name:$('#gNameIn').value.trim()};
+  var row={store_open:st.store_open,store_message:$('#sMsg').value.trim(),store_reopen_at:st.store_reopen_at||null,dine_in_available:st.dine_in_available,dine_in_reason:$('#dReason').value.trim(),dine_in_reopen_at:st.dine_in_reopen_at||null,
+    gcash_number:$('#gNumIn').value.trim(),gcash_name:$('#gNameIn').value.trim(),maya_number:$('#mNumIn').value.trim(),maya_name:$('#mNameIn').value.trim(),
+    pay_gcash:bool(st.pay_gcash,true),pay_maya:bool(st.pay_maya,false),pay_cash:bool(st.pay_cash,true),gcash_qr:st.gcash_qr||'',maya_qr:st.maya_qr||''};
   sb.from('settings').update(row).eq('id',1).select().then(function(r){
     b.disabled=false;
-    if(r.error||!r.data||!r.data.length){$('#storeMsg').textContent='Could not save. Check that you are signed in as staff.';return}
+    if(r.error||!r.data||!r.data.length){$('#storeMsg').textContent='Could not save. Run supabase-update-v2.sql first, and make sure you are signed in as staff.';return}
     st=r.data[0];paintStore();$('#storeMsg').textContent='Saved ✓';
   });
 };
 $('#discardStore').onclick=loadStore;
 
 /* ---------- menu items ---------- */
-function mkey(c,n){return c+'|'+n}
 function loadMenu(){
-  sb.from('menu_items').select('key,status').then(function(r){
-    ms={};(r.data||[]).forEach(function(x){ms[x.key]=x.status});
-    var sel=$('#mCat');
-    if(!sel.options.length){sel.innerHTML='<option value="all">All categories</option>'+M.map(function(m,k){return '<option value="'+k+'">'+esc(m.c)+'</option>'}).join('')}
-    paintMenu();$('#menuMsg').textContent=r.error?'Could not load saved statuses.':'Loaded from server';
+  sb.from('menu_items').select('*').limit(1000).then(function(r){
+    if(r.error){$('#menuMsg').textContent='Could not load the menu. Run supabase-update-v2.sql first.';return}
+    rows=r.data||[];ms={};orig={};rows.forEach(function(x){ms[x.key]=x.status;orig[x.key]=x.status});
+    var cats=BC.group(rows).map(function(m){return m.c}),sel=$('#mCat'),cur=sel.value||'all';
+    sel.innerHTML='<option value="all">All categories</option>'+cats.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>'}).join('');
+    sel.value=cats.indexOf(cur)>-1?cur:'all';
+    $('#catList').innerHTML=cats.map(function(c){return '<option value="'+esc(c)+'">'}).join('');
+    paintMenu();$('#menuMsg').textContent='Loaded from server';
   });
 }
 function paintMenu(){
-  var c=$('#mCat').value;
-  $('#mList').innerHTML=M.map(function(m,k){
-    if(c!=='all'&&String(k)!==c)return '';
-    return '<h3 class="hint" style="margin:14px 0 6px;text-transform:uppercase">'+esc(m.c)+'</h3>'+m.i.map(function(i){
-      var key=mkey(m.c,i.n),s=ms[key]||'on',pr=i.p.length>1?peso(i.p[0])+' / '+peso(i.p[1]):peso(i.p[0]);
-      return '<div class="card arow"><div><b>'+esc(i.n)+'</b><div class="hint">'+pr+'</div></div><div class="seg" data-key="'+esc(key)+'">'+
-        ['on:On','soldout:Sold out','removed:Remove'].map(function(o){var p=o.split(':');return '<button data-v="'+p[0]+'" class="'+(s===p[0]?'on':'')+'">'+p[1]+'</button>'}).join('')+'</div></div>';
+  var c=$('#mCat').value,groups=BC.group(rows);
+  $('#mList').innerHTML=groups.map(function(m){
+    if(c!=='all'&&m.c!==c)return '';
+    return '<h3 class="cathead">'+esc(m.c)+'</h3>'+m.i.map(function(i){
+      var s=ms[i.key]||'on',pr=i.p.length>1?peso(i.p[0])+' / '+peso(i.p[1]):peso(i.p[0]);
+      return '<div class="card arow"><div class="ainfo">'+(i.img?'<img class="thumb sm" src="'+esc(i.img)+'" alt="">':'<span class="thumb sm empty"></span>')+'<div><b>'+esc(i.n)+'</b><div class="hint">'+pr+(i.custom?' · added by you':'')+'</div></div></div>'+
+        '<div class="arow-r"><div class="seg" data-key="'+esc(i.key)+'">'+['on:On','soldout:Sold out','removed:Remove'].map(function(o){var p=o.split(':');return '<button data-v="'+p[0]+'" class="'+(s===p[0]?'on':'')+'">'+p[1]+'</button>'}).join('')+'</div><button class="editbtn" data-edit="'+esc(i.key)+'">Edit</button></div></div>';
     }).join('');
   }).join('');
 }
 $('#mCat').onchange=paintMenu;
 $('#mList').addEventListener('click',function(e){
-  var b=e.target.closest('button'),seg=e.target.closest('.seg');if(!b||!seg)return;
-  ms[seg.dataset.key]=b.dataset.v;
-  [].forEach.call(seg.children,function(x){x.classList.toggle('on',x===b)});
+  var ed=e.target.closest('[data-edit]');
+  if(ed){openForm(ed.getAttribute('data-edit'));return}
+  var b=e.target.closest('.seg button'),sg=e.target.closest('.seg');if(!b||!sg)return;
+  ms[sg.dataset.key]=b.dataset.v;[].forEach.call(sg.children,function(x){x.classList.toggle('on',x===b)});
 });
 $('#saveMenu').onclick=function(){
-  var b=this;b.disabled=true;
-  var rows=[];
-  M.forEach(function(m){m.i.forEach(function(i){
-    rows.push({key:mkey(m.c,i.n),category:m.c,name:i.n,prices:i.p,labels:i.p.length>1?(i.z||['16oz','22oz']):[],status:ms[mkey(m.c,i.n)]||'on',updated_at:new Date().toISOString()});
-  })});
-  sb.from('menu_items').upsert(rows,{onConflict:'key'}).then(function(r){
+  var b=this,keys=Object.keys(ms).filter(function(k){return ms[k]!==orig[k]});
+  if(!keys.length){$('#menuMsg').textContent='No changes to save.';return}
+  b.disabled=true;
+  Promise.all(keys.map(function(k){return sb.from('menu_items').update({status:ms[k],updated_at:new Date().toISOString()}).eq('key',k)})).then(function(res){
     b.disabled=false;
-    $('#menuMsg').textContent=r.error?'Could not save. Check that you are signed in as staff.':'Saved ✓ (prices synced from menu.js)';
+    var bad=res.some(function(r){return r.error});
+    $('#menuMsg').textContent=bad?'Some changes could not be saved. Check that you are signed in as staff.':'Saved ✓';
+    if(!bad)loadMenu();
   });
 };
 $('#discardMenu').onclick=loadMenu;
 
+/* add / edit item form */
+function openForm(key){
+  editKey=key;newBlob=null;$('#iErr').textContent='';$('#iFile').value='';
+  var r=key?rows.filter(function(x){return x.key===key})[0]:null;
+  $('#formTitle').textContent=r?'Edit item':'Add item';
+  $('#iName').value=r?r.name:'';$('#iCat').value=r?r.category:($('#mCat').value!=='all'?$('#mCat').value:'');
+  var p=r?r.prices:[],l=r?(r.labels||[]):[];
+  $('#iP1').value=p[0]||'';$('#iP2').value=p[1]||'';$('#iL1').value=l[0]||'';$('#iL2').value=l[1]||'';
+  $('#iDesc').value=r?(r.description||''):'';
+  editImage=r?(r.image||''):'';paintImg();
+  $('#deleteItem').hidden=!(r&&r.custom);
+  $('#itemForm').hidden=false;$('#itemForm').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function paintImg(){var u=newBlob?URL.createObjectURL(newBlob):editImage;$('#iImg').hidden=!u;if(u)$('#iImg').src=u;$('#iImgClear').hidden=!u}
+$('#addItem').onclick=function(){openForm(null)};
+$('#cancelItem').onclick=function(){$('#itemForm').hidden=true};
+$('#iFile').addEventListener('change',function(){
+  var f=this.files&&this.files[0];if(!f)return;
+  BC.compress(f,1000,function(b){if(!b){$('#iErr').textContent='That image could not be read. Try another photo.';return}newBlob=b;paintImg()});
+});
+$('#iImgClear').onclick=function(){newBlob=null;editImage='';$('#iFile').value='';paintImg()};
+$('#saveItem').onclick=function(){
+  var name=$('#iName').value.trim(),cat=$('#iCat').value.trim(),p1=parseFloat($('#iP1').value),p2=parseFloat($('#iP2').value),err=$('#iErr');err.textContent='';
+  if(!name){err.textContent='Please enter the item name.';return}
+  if(!cat){err.textContent='Please enter a category.';return}
+  if(!(p1>0)){err.textContent='Please enter a price.';return}
+  var two=p2>0,prices=two?[p1,p2]:[p1],labels=two?[$('#iL1').value.trim()||'16oz',$('#iL2').value.trim()||'22oz']:[];
+  var key=editKey||(cat+'|'+name);
+  if(!editKey&&rows.some(function(x){return x.key===key})){err.textContent='An item with this name already exists in that category.';return}
+  var b=this;b.disabled=true;b.textContent='Saving…';
+  var imgP=newBlob?uploadMedia(newBlob,'menu'):Promise.resolve(editImage);
+  imgP.then(function(url){
+    var base={category:cat,name:name,prices:prices,labels:labels,description:$('#iDesc').value.trim(),image:url||'',updated_at:new Date().toISOString()};
+    if(editKey)return sb.from('menu_items').update(base).eq('key',editKey);
+    var max=rows.reduce(function(m,x){return Math.max(m,x.sort||0)},0);
+    base.key=key;base.status='on';base.sort=max+1;base.custom=true;
+    return sb.from('menu_items').insert(base);
+  }).then(function(r){
+    b.disabled=false;b.textContent='Save item';
+    if(r.error){err.textContent='Could not save: '+r.error.message;return}
+    $('#itemForm').hidden=true;loadMenu();$('#menuMsg').textContent='Item saved ✓';
+  }).catch(function(e){b.disabled=false;b.textContent='Save item';err.textContent='Photo upload failed. Run supabase-update-v2.sql first, then try again.'});
+};
+$('#deleteItem').onclick=function(){
+  if(!editKey||!confirm('Delete this item for good?'))return;
+  sb.from('menu_items').delete().eq('key',editKey).then(function(r){
+    if(r.error){$('#iErr').textContent='Could not delete.';return}
+    $('#itemForm').hidden=true;loadMenu();
+  });
+};
+
 /* ---------- password ---------- */
 $('#updPass').onclick=function(){
-  var a=$('#pNew').value,c=$('#pNew2').value,err=$('#pErr');err.textContent='';
+  var a=$('#pNew').value,c=$('#pNew2').value,err=$('#pErr');err.textContent='';err.style.color='';
   if(a.length<8){err.textContent='Use at least 8 characters.';return}
   if(a!==c){err.textContent='The two passwords don’t match.';return}
   sb.auth.updateUser({password:a}).then(function(r){
