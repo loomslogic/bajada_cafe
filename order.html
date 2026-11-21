@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Order online · Bajada Cafe</title>
 <link rel="icon" type="image/png" href="bajada-favicon.png">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body class="orderpage">
 <div class="top slim"><div class="wrap">
@@ -88,9 +88,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.109.0/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
-<script src="menu.js"></script>
-<script src="shop.js"></script>
-<script src="order.js"></script>
+<script src="menu.js?v=7"></script>
+<script src="shop.js?v=7"></script>
+<script src="order.js?v=7"></script>
 <script>if(!window.__orderLoaded)document.getElementById("notice").innerHTML='<div class="notice warn">order.js did not load. Upload order.js to the same folder as order.html, then reload.</div>'</script>
+<script>setTimeout(function(){var s=document.querySelector(".shop"),n=document.getElementById("notice");if(s&&n&&getComputedStyle(s).display!=="grid")n.innerHTML='<div class="notice warn">The page style file is out of date. Upload the newest styles.css to your repo, then reload in a private tab.</div>'},900)</script>
 </body>
 </html>
