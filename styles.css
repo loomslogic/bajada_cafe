@@ -268,3 +268,7 @@ a.obtn{text-decoration:none}
 .cartbar{border-top:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));box-shadow:0 -10px 30px rgba(0,0,0,.25)}
 .cbl{display:flex;align-items:center;gap:12px;color:var(--accent)}
 .cbl b{color:var(--text)}
+
+/* Hidden means hidden (the card/form styles above would otherwise override the hidden attribute) */
+[hidden]{display:none!important}
+.arow .seg button{white-space:nowrap;padding:8px 12px}
